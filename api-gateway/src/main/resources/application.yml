@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Explicit routes only - every bounded context exposes /api/<its resources>. /internal/** is never routed.
+          routes:
+            - id: ordering
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
+            - id: inventory
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/products/**,/api/inventory/**
+            - id: payments
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/**
+            - id: orchestration
+              uri: lb://saga-orchestrator-service
+              predicates:
+                - Path=/api/sagas/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/ecommerce/protocol/openid-connect/certs}
+
+gateway:
+  cors:
+    allowed-origins: http://localhost:4300
+
+server:
+  port: 9000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:9761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
