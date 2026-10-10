@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/inventory}
+    username: ${DB_USER:inventory_user}
+    password: ${DB_PASSWORD:inventory_pw}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate     # schema is owned by Flyway migrations
+  flyway:
+    # platform = outbox/inbox tables shipped in platform-lib; the rest belong to this context
+    locations: classpath:db/migration/platform,classpath:db/migration/inventory
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9192}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: inventory-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/ecommerce/protocol/openid-connect/certs}
+
+server:
+  port: 9002
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:9761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [inventory-service] [%X{correlationId:-}] %logger{36} - %msg%n"
